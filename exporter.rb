@@ -61,14 +61,14 @@ total_pages = (post_count / PER_PAGE).ceil
       date = ''
     end
     
-    image_urls = {}
+    image_files = []
     post["media"].each do |name, media|
       next if media.nil? || media.empty?
       if name == "images"
         media.each do |image_and_sizes|
           image_and_sizes.each do |size, image|
             filename = image["url"].split('/').last
-            image_urls[image["url"]] = "/images/#{filename}"
+            image_files << filename
             image_response = HTTParty.get(image["url"])
             next unless image_response.code == 200
             img = File.new("images/#{filename}", "w")
@@ -95,7 +95,7 @@ total_pages = (post_count / PER_PAGE).ceil
     title = post["title"]
     file = File.new("_posts/#{date}-#{slug}.md", "w")
     body_full = post["body_full"]
-    image_urls.each {|old_url, new_url| body_full.gsub!(/#{old_url}/, new_url) }
+    image_files.each {|filename| escaped = filename.gsub(/\./, '\.'); body_full.gsub!(/http.*#{filename}/, "/images/#{filename}") }
     file.puts body_full
     file.close
     

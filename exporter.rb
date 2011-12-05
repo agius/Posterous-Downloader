@@ -26,9 +26,10 @@ class Posterous
   parser HTTParty::JsonParser
 end
 
-response = Posterous.get('/auth/token')
-p "Authentication failed" and exit unless response.code == 200 && (CONFIG['token'] = response.parsed_response["api_token"])
-Posterous.default_params :api_token => CONFIG['token']
+p "No api_token found - visit http://posterous.com/api to view your api token" and exit unless CONFIG['api_token']
+Posterous.default_params :api_token => CONFIG['api_token']
+response = Posterous.get('/users/me')
+p "Authentication failed" and exit unless response.code == 200
 
 response = Posterous.get("/sites/#{CONFIG['site_id']}")
 p "Invalid site id - please choose a site id from http://posterous.com/api/2/sites?api_token=#{CONFIG['token']}" and exit unless response.code == 200
@@ -61,9 +62,10 @@ total_pages = (post_count / PER_PAGE).ceil
     end
     
     image_urls = {}
-    post["media"].each do |media|
-      if(media["images"] && !media["images"].nil?)
-        media["images"].each do |image_and_sizes|
+    post["media"].each do |name, media|
+      next if media.nil? || media.empty?
+      if name == "images"
+        media.each do |image_and_sizes|
           image_and_sizes.each do |size, image|
             filename = image["url"].split('/').last
             image_urls[image["url"]] = "/images/#{filename}"
@@ -76,14 +78,14 @@ total_pages = (post_count / PER_PAGE).ceil
         end
       end
       
-      if(media["audio_files"] && !media["audio_files"].nil?)
-        media["audio_files"].each do |audio_files|
+      if name == "audio_files"
+        media.each do |audio_files|
           # TODO: build this
         end
       end
       
-      if(media["videos"] && !media["videos"].nil?)
-        media["videos"].each do |video|
+      if name == "videos"
+        media.each do |video|
           # TODO: build this
         end
       end

@@ -34,14 +34,25 @@ p "Authentication failed" and exit unless response.code == 200
 response = Posterous.get("/sites/#{CONFIG['site_id']}")
 p "Invalid site id - please choose a site id from http://posterous.com/api/2/sites?api_token=#{CONFIG['token']}" and exit unless response.code == 200
 
-site_name = response.parsed_response['full_hostname']
-Dir.mkdir(site_name) unless Dir.exists?(site_name)
-Dir.chdir(site_name)
+parsed = response.parsed_response
+hostname = parsed["full_hostname"]
+site_name = parsed["name"]
+subhead = parsed["subhead"]
+
+Dir.mkdir(hostname) unless Dir.exists?(hostname)
+Dir.chdir(hostname)
 Dir.mkdir('_layouts') unless Dir.exists?('_layouts')
 Dir.mkdir('_posts') unless Dir.exists?('_posts')
 Dir.mkdir('images') unless Dir.exists?('images')
 Dir.mkdir('css') unless Dir.exists?('css')
 Dir.mkdir('js') unless Dir.exists?('js')
+unless File.exists?("index.md")
+  File.open("index.md", 'w') do |f|
+    f.puts "---", "layout: default", "---"
+    f.puts "#{site_name}", "=" * site_name.length
+    f.puts "#{subhead}", "-" * subhead.length
+  end
+end
 
 post_count = response.parsed_response["posts_count"].to_i
 total_pages = (post_count / PER_PAGE).ceil
@@ -54,7 +65,7 @@ total_pages = (post_count / PER_PAGE).ceil
     @pbar.inc
     next
   end
-  response.parsed_response.each do |post|
+  response.parsed_response.each do |post| 
     begin
       date = Date.parse(post['display_date'])
     rescue StandardError => e
@@ -93,12 +104,13 @@ total_pages = (post_count / PER_PAGE).ceil
     
     slug = post["slug"]
     title = post["title"]
-    file = File.new("_posts/#{date}-#{slug}.md", "w")
+    date = post["display_date"]
     body_full = post["body_full"]
     image_files.each {|filename| escaped = filename.gsub(/\./, '\.'); body_full.gsub!(/http.*#{filename}/, "/images/#{filename}") }
-    file.puts body_full
-    file.close
-    
+    file = File.open("_posts/#{slug}.html", "w") do |f|
+      f.puts "---", "layout: default", "title: #{title}", "permalink: #{slug}", "date: #{date}", "---"
+      f.puts body_full
+    end
   end
   @pbar.inc
 end

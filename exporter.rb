@@ -46,11 +46,17 @@ Dir.mkdir('_posts') unless Dir.exists?('_posts')
 Dir.mkdir('images') unless Dir.exists?('images')
 Dir.mkdir('css') unless Dir.exists?('css')
 Dir.mkdir('js') unless Dir.exists?('js')
-unless File.exists?("index.md")
-  File.open("index.md", 'w') do |f|
+unless File.exists?("index.html")
+  File.open("index.html", 'w') do |f|
     f.puts "---", "layout: default", "---"
-    f.puts "#{site_name}", "=" * site_name.length
-    f.puts "#{subhead}", "-" * subhead.length
+    f.puts "<h1>#{site_name}</h1>"
+    f.puts "<h3>#{subhead}</h3>"
+  end
+end
+
+unless File.exists?("_config.yml")
+  File.open("_config.yml", 'w') do |f|
+    f.puts "---", "safe: true", "---"
   end
 end
 
@@ -66,12 +72,6 @@ total_pages = (post_count / PER_PAGE).ceil
     next
   end
   response.parsed_response.each do |post| 
-    begin
-      date = Date.parse(post['display_date'])
-    rescue StandardError => e
-      date = ''
-    end
-    
     image_files = []
     post["media"].each do |name, media|
       next if media.nil? || media.empty?
@@ -102,13 +102,20 @@ total_pages = (post_count / PER_PAGE).ceil
       end
     end
     
+    
+    begin
+      date = Date.parse(post['display_date'])
+    rescue StandardError => e
+      date = ''
+    end
+    
     slug = post["slug"]
-    title = post["title"]
-    date = post["display_date"]
+    title = post["title"].gsub(/"/, '\"')
     body_full = post["body_full"]
+    date_slug = date.strftime "%Y-%m-%d"
     image_files.each {|filename| escaped = filename.gsub(/\./, '\.'); body_full.gsub!(/http.*#{filename}/, "/images/#{filename}") }
-    file = File.open("_posts/#{slug}.html", "w") do |f|
-      f.puts "---", "layout: default", "title: #{title}", "permalink: #{slug}", "date: #{date}", "---"
+    file = File.open("_posts/#{date_slug}-#{slug}.html", "w") do |f|
+      f.puts "---", "layout: default", "title: \"#{title}\"", "permalink: \"#{slug}\"", "date: \"#{date_slug}\"", "---"
       f.puts body_full
     end
   end
